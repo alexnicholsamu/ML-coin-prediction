@@ -4,7 +4,7 @@ import train_model
 
 # Visualize the results
 if __name__ == "__main__":
-    actual, predicted, predicted_std = train_model.getPredictions("Monero")
+    actual, predicted, predicted_std = train_model.getPredictions("Bitcoin")  # Change for desired coin
     plt.figure(figsize=(16, 6))
     plt.plot(actual, label='Actual Prices')
     plt.plot(predicted, label='Predicted Prices')
@@ -16,5 +16,4 @@ if __name__ == "__main__":
     plt.xlabel('Time')
     plt.ylabel('Price')
     plt.legend()
-    plt.ylim(0, 500)
     plt.show()

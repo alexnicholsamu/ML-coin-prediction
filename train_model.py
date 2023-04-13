@@ -8,7 +8,7 @@ import model_architecture
 
 
 def chooseData(coin):
-    data = pd.read_csv(f'coin_{coin}.csv')
+    data = pd.read_csv(f'data_csv/coin_{coin}.csv')
     # Keep only the 'Close' price column
     price_data = data['Close']
 
@@ -97,4 +97,3 @@ def getPredictions(coin):
     return actual, predicted, predicted_std
 
 # Calculate the mean squared error
-
