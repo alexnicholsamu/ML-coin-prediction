@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import MinMaxScaler
 import pyro
 from pyro.infer.autoguide import AutoDiagonalNormal
@@ -10,12 +11,13 @@ import model_architecture
 def chooseData(coin):
     data = pd.read_csv(f'data_csv/coin_{coin}.csv')
     # Keep only the 'Close' price column
-    price_data = data['Close']
+    price_data = data['Close'].to_numpy()
 
     # Normalize the data (useful for LSTM)
     scaler = MinMaxScaler(feature_range=(-1, 1))
-    price_data_normalized = scaler.fit_transform(price_data.values.reshape(-1, 1))
+    price_data_normalized = scaler.fit_transform(price_data.reshape(-1, 1))
     return scaler, price_data_normalized
+
 
 
 model = model_architecture.getModel()
@@ -41,34 +43,62 @@ def create_sequences(data, seq_length):
     return inputs, labels
 
 
-def sortData(normalized_data):
+def sortData(data, train_ratio=0.7, val_ratio=0.2):
     seq_length = 30
-    inputs, labels = create_sequences(normalized_data, seq_length)
+    inputs, labels = create_sequences(data, seq_length)
+    train_size = int(len(inputs) * train_ratio)
+    val_size = int(len(inputs) * val_ratio)
 
-    # Split the data into train and test sets
-    train_size = int(len(inputs) * 0.8)
-    train_inputs, train_labels = inputs[:train_size], labels[:train_size]
-    test_inputs, test_labels = inputs[train_size:], labels[train_size:]
+    train_inputs = torch.tensor(inputs[:train_size], dtype=torch.float32)
+    train_labels = torch.tensor(labels[:train_size], dtype=torch.float32)
 
-    # Convert data to PyTorch tensors
-    train_inputs = torch.tensor(train_inputs).float()
-    train_labels = torch.tensor(train_labels).float()
-    test_inputs = torch.tensor(test_inputs).float()
-    test_labels = torch.tensor(test_labels).float()
+    val_inputs = torch.tensor(inputs[train_size:train_size + val_size], dtype=torch.float32)
+    val_labels = torch.tensor(labels[train_size:train_size + val_size], dtype=torch.float32)
 
-    return train_inputs, train_labels, test_inputs, test_labels
+    test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
+    test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
+
+    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
 
 
-def training(num_epochs, train_inputs, train_labels):
+
+def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, batch_size=32):
+    train_dataset = TensorDataset(train_inputs, train_labels)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    best_val_loss = float('inf')
+    patience = 5
+    epochs_without_improvement = 0
+
     for epoch in range(num_epochs):
         total_loss = 0
-        for i in range(len(train_inputs)):
-            inputs = train_inputs[i].unsqueeze(0)  # Add a new dimension for the sequence
-            labels = train_labels[i].unsqueeze(0)  # Add a new dimension for the sequence
+
+        for inputs, labels in train_dataloader:
             loss = svi.step(inputs, labels)
             total_loss += loss
+
         avg_loss = total_loss / len(train_inputs)
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.2f}')
+
+        # Evaluate on validation set
+        val_loss = evaluate(val_inputs, val_labels)
+        print(f'Validation Loss: {val_loss:.2f}')
+
+        # Early stopping
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement >= patience:
+            print("Early stopping triggered.")
+            break
+
+def evaluate(inputs, labels):
+    with torch.no_grad():
+        loss = svi.evaluate_loss(inputs, labels)
+    return loss
 
 
 def getMeanSquaredError(predicted, actual):
@@ -78,9 +108,9 @@ def getMeanSquaredError(predicted, actual):
 
 def getPredictions(coin):
     scaler, normalized_data = chooseData(coin)
-    train_inputs, train_labels, test_inputs, test_labels = sortData(normalized_data)
+    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = sortData(normalized_data)
     num_epochs = 100
-    training(num_epochs, train_inputs, train_labels)
+    training(num_epochs, train_inputs, train_labels, val_inputs, val_labels)
 
     with torch.no_grad():
         predictive = pyro.infer.Predictive(model_architecture.getModel(), guide=guide, num_samples=1000)
@@ -95,5 +125,3 @@ def getPredictions(coin):
     print(getMeanSquaredError(predicted, actual))
 
     return actual, predicted, predicted_std
-
-# Calculate the mean squared error

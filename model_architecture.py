@@ -38,8 +38,10 @@ class BayesianLSTM(PyroModule):
         # Assuming a fixed standard deviation for the output distribution
         output_std = torch.tensor(0.1)
 
-        obs = pyro.sample("obs", dist.Normal(output, output_std), obs=labels)
+        with pyro.plate("data", batch_size):  # Add this line
+           obs = pyro.sample("obs", dist.Normal(output, output_std).to_event(1), obs=labels)
         return output
+
 
 
 input_dim = 1
