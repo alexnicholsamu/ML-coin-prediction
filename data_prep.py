@@ -74,3 +74,11 @@ def sortData(data, train_ratio=0.7, val_ratio=0.2):
     last_sequence = torch.tensor(inputs[-1], dtype=torch.float32).unsqueeze(0)  # Add this line to get the last sequence
 
     return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence
+
+
+def prep_tomorrow_price(tomorrow_price):
+    if tomorrow_price < 10:
+        tomorrow_price = round(tomorrow_price, 4)
+    else:
+        tomorrow_price = round(tomorrow_price, 2)
+    return tomorrow_price

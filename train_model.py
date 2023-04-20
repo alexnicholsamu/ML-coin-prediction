@@ -12,15 +12,17 @@ guide = AutoDiagonalNormal(model)
 
 svi = pyro.infer.SVI(model=model,
                      guide=guide,
-                     optim=pyro.optim.Adam({"lr": 4e-5}),
+                     optim=pyro.optim.Adam({"lr": 0.1}),
                      loss=pyro.infer.Trace_ELBO())
 
+
+def update_optimizer_learning_rate(svi, new_lr):
+    svi.optim = pyro.optim.Adam({"lr": new_lr})
 
 
 def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, batch_size=32):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
     best_val_loss = float('inf')
     patience = 10
     epochs_without_improvement = 0
@@ -50,6 +52,7 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, bat
             print("Early stopping triggered.")
             break
 
+
 def evaluate(inputs, labels):
     with torch.no_grad():
         loss = svi.evaluate_loss(inputs, labels)
@@ -61,11 +64,11 @@ def getMeanSquaredError(predicted, actual):
     return f"Mean Squared Error: {mse:.2f}"
 
 
-def getPredictions(coin):
+def getPredictions(coin, lr, epochs):
     scaler, normalized_data = data_prep.chooseData(coin)
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
-    num_epochs = 150
-    training(num_epochs, train_inputs, train_labels, val_inputs, val_labels)
+    update_optimizer_learning_rate(svi, lr)
+    training(epochs, train_inputs, train_labels, val_inputs, val_labels)
 
     with torch.no_grad():
         predictive = pyro.infer.Predictive(model_architecture.getModel(), guide=guide, num_samples=1000)
@@ -87,4 +90,4 @@ def getPredictions(coin):
 
     tomorrow_price = tomorrow_price[0, 0]
 
-    return actual, predicted, predicted_std, tomorrow_price
+    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
