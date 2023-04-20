@@ -8,9 +8,9 @@
 
 ## Summary:
 
-This is my AI coin prediction algorithm. This is the alpha stage, so there will be improvements to come. Soon to be implemented: pipeline to get current data, accuracy improvements and more! (Ideally, better visuals as well)
+This is my AI coin prediction algorithm. This is the alpha stage, so there will be improvements to come. Soon to be implemented: qccuracy improvements and better visuals
 
-I use a BayesianLSTM model that I train using the dataset above, that predicts future prices of the specified coin using market patterns from coin history. Then, the training history is plotted
+I use a BayesianLSTM model that I train using the dataset above and pipeline-ing in most current data; it predicts future prices of the specified coin using market patterns from coin history. Then, the training history is plotted
 
 Coins available: Aave, BinanceCoin, Bitcoin, Cardano, ChainLink, Cosmos, CryptocomCoin, Dogecoin, EOS, Ethereum, Iota, Litecoin, Monero, NEM, Polkadot, Solana, Stellar, Tether, Tron, Uniswap, USDCoin, WrappedBitcoin, XRP
 

@@ -1,23 +1,10 @@
-import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.preprocessing import MinMaxScaler
 import pyro
 from pyro.infer.autoguide import AutoDiagonalNormal
 import model_architecture
-
-
-def chooseData(coin):
-    data = pd.read_csv(f'data_csv/coin_{coin}.csv')
-    # Keep only the 'Close' price column
-    price_data = data['Close'].to_numpy()
-
-    # Normalize the data (useful for LSTM)
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-    price_data_normalized = scaler.fit_transform(price_data.reshape(-1, 1))
-    return scaler, price_data_normalized
-
+import data_collect
 
 
 model = model_architecture.getModel()
@@ -107,7 +94,7 @@ def getMeanSquaredError(predicted, actual):
 
 
 def getPredictions(coin):
-    scaler, normalized_data = chooseData(coin)
+    scaler, normalized_data = data_collect.chooseData(coin)
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = sortData(normalized_data)
     num_epochs = 150
     training(num_epochs, train_inputs, train_labels, val_inputs, val_labels)
