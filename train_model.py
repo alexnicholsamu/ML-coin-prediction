@@ -20,7 +20,7 @@ def update_optimizer_learning_rate(svi, new_lr):
     svi.optim = pyro.optim.Adam({"lr": new_lr})
 
 
-def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, patience, batch_size=32):
+def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, patience, batch_size=64):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     best_val_loss = float('inf')
@@ -63,8 +63,8 @@ def getMeanSquaredError(predicted, actual):
     return f"Mean Squared Error: {mse:.2f}"
 
 
-def getPredictions(coin, data_pack):
-    scaler, normalized_data = data_prep.chooseData(coin)
+def getPredictions(data_pack):
+    scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
     update_optimizer_learning_rate(svi, data_pack["learning rate"])
     training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"])
@@ -79,8 +79,6 @@ def getPredictions(coin, data_pack):
     predicted_std = scaler.inverse_transform(predicted_std)
     actual = scaler.inverse_transform(test_labels.numpy().reshape(-1, 1))
 
-    print(getMeanSquaredError(predicted, actual))
-
     # Make a prediction for tomorrow
     with torch.no_grad():
         tomorrow_normalized_samples = predictive(last_sequence)['obs']
@@ -89,4 +87,4 @@ def getPredictions(coin, data_pack):
 
     tomorrow_price = tomorrow_price[0, 0]
 
-    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
+    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price), getMeanSquaredError(predicted, actual)

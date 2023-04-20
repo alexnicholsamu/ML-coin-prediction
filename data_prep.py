@@ -1,7 +1,7 @@
 from pycoingecko import CoinGeckoAPI as cg
 from datetime import datetime
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 import torch
 import numpy as np
 
@@ -31,7 +31,7 @@ def chooseData(coin):
 
     price_data_array = updated_price_data.to_numpy()
 
-    scaler = MinMaxScaler(feature_range=(-1, 1))
+    scaler = StandardScaler()
     price_data_normalized = scaler.fit_transform(price_data_array.reshape(-1, 1))
     return scaler, price_data_normalized
 
