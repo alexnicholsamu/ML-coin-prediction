@@ -81,7 +81,10 @@ def getPredictions(coin):
 
     # Make a prediction for tomorrow
     with torch.no_grad():
-        tomorrow_normalized = model(torch.tensor(last_sequence, dtype=torch.float32))
-        tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy())
+        tomorrow_normalized_samples = predictive(last_sequence)['obs']
+        tomorrow_normalized_mean = tomorrow_normalized_samples.mean(0).item()
+        tomorrow_price = scaler.inverse_transform(np.array(tomorrow_normalized_mean).reshape(1, -1))
 
-    return actual, predicted, predicted_std, tomorrow_price[0, 0]
+    tomorrow_price = tomorrow_price[0, 0]
+
+    return actual, predicted, predicted_std, tomorrow_price

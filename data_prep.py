@@ -22,8 +22,6 @@ def update_price_data(coin, price_data, start_date):
     return updated_price_data
 
 
-
-
 def chooseData(coin):
     data = pd.read_csv(f'data_csv/coin_{coin}.csv')
     price_data = data['Close']
@@ -72,5 +70,7 @@ def sortData(data, train_ratio=0.7, val_ratio=0.2):
 
     test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
     test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
+    
+    last_sequence = torch.tensor(inputs[-1], dtype=torch.float32).unsqueeze(0)  # Add this line to get the last sequence
 
     return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence
