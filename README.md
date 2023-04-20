@@ -10,10 +10,10 @@
 
 This is my AI coin prediction algorithm. This is the alpha stage, so there will be improvements to come. Soon to be implemented: qccuracy improvements and better visuals
 
-I use a BayesianLSTM model that I train using the dataset above and pipeline-ing in most current data; it predicts future prices of the specified coin using market patterns from coin history. Then, the training history is plotted
+I use a BayesianLSTM model that I train using the dataset above and pipeline-ing in most current data; it trains over the trends of the price following it's own conceptual "fake" cryptocurrency running cocurrently. Then, the coin predicted history is plotted and a prediction for tomorrows price is given.
 
 Coins available: Aave, BinanceCoin, Bitcoin, Cardano, ChainLink, Cosmos, CryptocomCoin, Dogecoin, EOS, Ethereum, Iota, Litecoin, Monero, NEM, Polkadot, Solana, Stellar, Tether, Tron, Uniswap, USDCoin, WrappedBitcoin, XRP
 
 All files are necessary to run this
 
-License can be found in the [Lisense](LICENSE), and any and all suggestions should be emailed to _alexander.k.nichols@gmail.com_
+License can be found in the [License](LICENSE), and any and all suggestions should be emailed to _alexander.k.nichols@gmail.com_

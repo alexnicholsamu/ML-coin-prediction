@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import pyro
 from pyro.infer.autoguide import AutoDiagonalNormal
 import model_architecture
-import data_collect
+import data_prep
 
 
 model = model_architecture.getModel()
@@ -16,45 +16,13 @@ svi = pyro.infer.SVI(model=model,
                      loss=pyro.infer.Trace_ELBO())
 
 
-def create_sequences(data, seq_length):
-    inputs = []
-    labels = []
-
-    for i in range(len(data) - seq_length):
-        inputs.append(data[i:i + seq_length, 0])
-        labels.append(data[i + seq_length])
-
-    inputs = np.array(inputs).reshape(-1, seq_length, 1)
-    labels = np.array(labels)
-
-    return inputs, labels
-
-
-def sortData(data, train_ratio=0.7, val_ratio=0.2):
-    seq_length = 30
-    inputs, labels = create_sequences(data, seq_length)
-    train_size = int(len(inputs) * train_ratio)
-    val_size = int(len(inputs) * val_ratio)
-
-    train_inputs = torch.tensor(inputs[:train_size], dtype=torch.float32)
-    train_labels = torch.tensor(labels[:train_size], dtype=torch.float32)
-
-    val_inputs = torch.tensor(inputs[train_size:train_size + val_size], dtype=torch.float32)
-    val_labels = torch.tensor(labels[train_size:train_size + val_size], dtype=torch.float32)
-
-    test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
-    test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
-
-    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
-
-
 
 def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, batch_size=32):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     best_val_loss = float('inf')
-    patience = 5
+    patience = 10
     epochs_without_improvement = 0
 
     for epoch in range(num_epochs):
@@ -94,8 +62,8 @@ def getMeanSquaredError(predicted, actual):
 
 
 def getPredictions(coin):
-    scaler, normalized_data = data_collect.chooseData(coin)
-    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = sortData(normalized_data)
+    scaler, normalized_data = data_prep.chooseData(coin)
+    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
     num_epochs = 150
     training(num_epochs, train_inputs, train_labels, val_inputs, val_labels)
 
@@ -111,4 +79,9 @@ def getPredictions(coin):
 
     print(getMeanSquaredError(predicted, actual))
 
-    return actual, predicted, predicted_std
+    # Make a prediction for tomorrow
+    with torch.no_grad():
+        tomorrow_normalized = model(torch.tensor(last_sequence, dtype=torch.float32))
+        tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy())
+
+    return actual, predicted, predicted_std, tomorrow_price[0, 0]
