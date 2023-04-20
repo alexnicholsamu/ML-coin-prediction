@@ -43,7 +43,6 @@ class BayesianLSTM(PyroModule):
         return output
 
 
-
 input_dim = 1
 hidden_dim = 128
 num_layers = 6

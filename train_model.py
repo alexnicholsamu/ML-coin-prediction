@@ -20,11 +20,10 @@ def update_optimizer_learning_rate(svi, new_lr):
     svi.optim = pyro.optim.Adam({"lr": new_lr})
 
 
-def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, batch_size=32):
+def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, patience, batch_size=32):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     best_val_loss = float('inf')
-    patience = 10
     epochs_without_improvement = 0
 
     for epoch in range(num_epochs):
@@ -64,11 +63,11 @@ def getMeanSquaredError(predicted, actual):
     return f"Mean Squared Error: {mse:.2f}"
 
 
-def getPredictions(coin, lr, epochs):
+def getPredictions(coin, data_pack):
     scaler, normalized_data = data_prep.chooseData(coin)
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
-    update_optimizer_learning_rate(svi, lr)
-    training(epochs, train_inputs, train_labels, val_inputs, val_labels)
+    update_optimizer_learning_rate(svi, data_pack["learning rate"])
+    training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"])
 
     with torch.no_grad():
         predictive = pyro.infer.Predictive(model_architecture.getModel(), guide=guide, num_samples=1000)
