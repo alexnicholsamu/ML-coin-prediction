@@ -25,7 +25,7 @@ guide = AutoDiagonalNormal(model)
 
 svi = pyro.infer.SVI(model=model,
                      guide=guide,
-                     optim=pyro.optim.Adam({"lr": 4e-4}),
+                     optim=pyro.optim.Adam({"lr": 4e-5}),
                      loss=pyro.infer.Trace_ELBO())
 
 
@@ -109,7 +109,7 @@ def getMeanSquaredError(predicted, actual):
 def getPredictions(coin):
     scaler, normalized_data = chooseData(coin)
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = sortData(normalized_data)
-    num_epochs = 100
+    num_epochs = 150
     training(num_epochs, train_inputs, train_labels, val_inputs, val_labels)
 
     with torch.no_grad():
