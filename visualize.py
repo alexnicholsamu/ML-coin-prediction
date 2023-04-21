@@ -9,7 +9,7 @@ def getPlot(actual, predicted, predicted_std):
     plt.fill_between(np.arange(len(predicted)),
                      predicted.squeeze() - predicted_std.squeeze(),
                      predicted.squeeze() + predicted_std.squeeze(),
-                     alpha=0.5,
+                     alpha=0.25,
                      label='Uncertainty')
     plt.xlabel('Time')
     plt.ylabel('Price')

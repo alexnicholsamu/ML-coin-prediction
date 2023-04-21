@@ -1,44 +1,41 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-import pyro
-from pyro.infer.autoguide import AutoDiagonalNormal
+import torch.optim as optim
 import model_architecture
 import data_prep
 
 
 model = model_architecture.getModel()
-guide = AutoDiagonalNormal(model)
-
-svi = pyro.infer.SVI(model=model,
-                     guide=guide,
-                     optim=pyro.optim.Adam({"lr": 0.1}),
-                     loss=pyro.infer.Trace_ELBO())
 
 
-def update_optimizer_learning_rate(svi, new_lr):
-    svi.optim = pyro.optim.Adam({"lr": new_lr})
-
-
-def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, patience, batch_size=64):
+def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, 
+             patience, learn_rate, batch_size=64):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     best_val_loss = float('inf')
     epochs_without_improvement = 0
 
+    optimizer = optim.Rprop(model.parameters(), lr=learn_rate)
+
     for epoch in range(num_epochs):
         total_loss = 0
 
         for inputs, labels in train_dataloader:
-            loss = svi.step(inputs, labels)
-            total_loss += loss
+            optimizer.zero_grad()
+            outputs = model(inputs)
+
+            loss = torch.mean((outputs.squeeze(-1) - labels) ** 2)
+            total_loss += loss.item()
+            loss.backward()
+            optimizer.step()
 
         avg_loss = total_loss / len(train_inputs)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.2f}')
+        print(f'Epoch {epoch + 1}/{num_epochs} | Loss: {avg_loss}')
 
         # Evaluate on validation set
         val_loss = evaluate(val_inputs, val_labels)
-        print(f'Validation Loss: {val_loss:.2f}')
+        print(f'Validation Loss: {val_loss}')
 
         # Early stopping
         if val_loss < best_val_loss:
@@ -54,8 +51,9 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, pat
 
 def evaluate(inputs, labels):
     with torch.no_grad():
-        loss = svi.evaluate_loss(inputs, labels)
-    return loss
+        outputs = model(inputs)
+        loss = torch.mean((outputs.squeeze(-1) - labels) ** 2)
+    return loss.item()
 
 
 def getMeanSquaredError(predicted, actual):
@@ -66,25 +64,23 @@ def getMeanSquaredError(predicted, actual):
 def getPredictions(data_pack):
     scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
     train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
-    update_optimizer_learning_rate(svi, data_pack["learning rate"])
-    training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"])
+    training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"], data_pack["learning rate"])
 
     with torch.no_grad():
-        predictive = pyro.infer.Predictive(model_architecture.getModel(), guide=guide, num_samples=1000)
-        samples = predictive(test_inputs)
-        predicted = samples['obs'].mean(0).detach().numpy()
-        predicted_std = samples['obs'].std(0).detach().numpy()
+        predicted = model(test_inputs).numpy()
 
-    predicted = scaler.inverse_transform(predicted)
-    predicted_std = scaler.inverse_transform(predicted_std)
     actual = scaler.inverse_transform(test_labels.numpy().reshape(-1, 1))
+    predicted = scaler.inverse_transform(predicted.reshape(-1, 1))
+
+    # Calculate the standard deviation of the predicted values
+    predicted_std = np.std(predicted)
 
     # Make a prediction for tomorrow
     with torch.no_grad():
-        tomorrow_normalized_samples = predictive(last_sequence)['obs']
-        tomorrow_normalized_mean = tomorrow_normalized_samples.mean(0).item()
-        tomorrow_price = scaler.inverse_transform(np.array(tomorrow_normalized_mean).reshape(1, -1))
+        tomorrow_normalized = model(last_sequence)
+        tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy().reshape(1, -1))
 
     tomorrow_price = tomorrow_price[0, 0]
 
-    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price), getMeanSquaredError(predicted, actual)
+    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
+
