@@ -71,16 +71,17 @@ def getPredictions(data_pack):
 
     actual = scaler.inverse_transform(test_labels.numpy().reshape(-1, 1))
     predicted = scaler.inverse_transform(predicted.reshape(-1, 1))
+    predicted = predicted[:len(actual)+1]
 
     # Calculate the standard deviation of the predicted values
     predicted_std = np.std(predicted)
 
     # Make a prediction for tomorrow
-    with torch.no_grad():
-        tomorrow_normalized = model(last_sequence)
-        tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy().reshape(1, -1))
+    # with torch.no_grad():
+    #     tomorrow_normalized = model(last_sequence)
+    #     tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy().reshape(1, -1))
 
-    tomorrow_price = tomorrow_price[0, 0]
+    tomorrow_price = predicted[len(predicted)-1][0]
 
     return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
 
