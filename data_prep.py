@@ -41,7 +41,6 @@ def create_sequences(data, seq_length):
     labels = []
 
     # New variable to store the last sequence
-    last_sequence = []
 
     for i in range(len(data) - seq_length):
         inputs.append(data[i:i + seq_length, 0])
@@ -53,12 +52,12 @@ def create_sequences(data, seq_length):
     inputs = np.array(inputs).reshape(-1, seq_length, 1)
     labels = np.array(labels)
 
-    return inputs, labels, np.array(last_sequence).reshape(1, -1, 1)
+    return inputs, labels
 
 
 def sortData(data, train_ratio=0.7, val_ratio=0.2):
     seq_length = 30
-    inputs, labels, last_sequence = create_sequences(data, seq_length)
+    inputs, labels = create_sequences(data, seq_length)
     train_size = int(len(inputs) * train_ratio)
     val_size = int(len(inputs) * val_ratio)
 
@@ -71,10 +70,7 @@ def sortData(data, train_ratio=0.7, val_ratio=0.2):
     test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
     test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
     
-    last_sequence = torch.tensor(inputs[-1], dtype=torch.float32).unsqueeze(0)  # Add this line to get the last sequence
-
-    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence
-
+    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
 
 
 def prep_tomorrow_price(tomorrow_price):

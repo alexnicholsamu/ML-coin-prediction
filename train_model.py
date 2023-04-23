@@ -10,7 +10,7 @@ model = model_architecture.getModel()
 
 
 def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, 
-             patience, learn_rate, batch_size=64):
+             patience, learn_rate, batch_size=128):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     best_val_loss = float('inf')
@@ -20,7 +20,6 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
 
     for epoch in range(num_epochs):
         total_loss = 0
-
         for inputs, labels in train_dataloader:
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -63,7 +62,7 @@ def getMeanSquaredError(predicted, actual):
 
 def getPredictions(data_pack):
     scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
-    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, last_sequence = data_prep.sortData(normalized_data)
+    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = data_prep.sortData(normalized_data)
     training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"], data_pack["learning rate"])
 
     with torch.no_grad():
@@ -75,11 +74,6 @@ def getPredictions(data_pack):
 
     # Calculate the standard deviation of the predicted values
     predicted_std = np.std(predicted)
-
-    # Make a prediction for tomorrow
-    # with torch.no_grad():
-    #     tomorrow_normalized = model(last_sequence)
-    #     tomorrow_price = scaler.inverse_transform(tomorrow_normalized.numpy().reshape(1, -1))
 
     tomorrow_price = predicted[len(predicted)-1][0]
 
