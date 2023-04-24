@@ -55,20 +55,19 @@ def create_sequences(data, seq_length):
     return inputs, labels
 
 
-def sortData(data, train_ratio=0.7, val_ratio=0.2):
+def sortData(data, val_ratio = 0.15):
     seq_length = 30
     inputs, labels = create_sequences(data, seq_length)
-    train_size = int(len(inputs) * train_ratio)
     val_size = int(len(inputs) * val_ratio)
 
-    train_inputs = torch.tensor(inputs[:train_size], dtype=torch.float32)
-    train_labels = torch.tensor(labels[:train_size], dtype=torch.float32)
+    train_inputs = torch.tensor(inputs[val_size:], dtype=torch.float32)
+    train_labels = torch.tensor(labels[val_size:], dtype=torch.float32)
 
-    val_inputs = torch.tensor(inputs[train_size:train_size + val_size], dtype=torch.float32)
-    val_labels = torch.tensor(labels[train_size:train_size + val_size], dtype=torch.float32)
+    val_inputs = torch.tensor(inputs[:val_size], dtype=torch.float32)
+    val_labels = torch.tensor(labels[:val_size], dtype=torch.float32)
 
-    test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
-    test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
+    test_inputs = torch.tensor(inputs[len(inputs) - val_size:], dtype=torch.float32)
+    test_labels = torch.tensor(labels[len(labels) - val_size:], dtype=torch.float32)
     
     return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
 
