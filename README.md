@@ -18,6 +18,6 @@ All files are necessary to run this
 
 License can be found in the [License](LICENSE), and any and all suggestions should be emailed to _alexander.k.nichols@gmail.com_
 
-Sample Image given example data batch:
+Sample Image given example data batch (_29/04/23_):
 
 ![Sample Image](./images/sampleimage.png)
