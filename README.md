@@ -4,7 +4,7 @@
 
 > [Dataset](https://www.kaggle.com/datasets/sudalairajkumar/cryptocurrencypricehistory)
  
-> PyTorch, sklearn, pycoingecko
+> PyTorch, sklearn, pycoingecko, matplotlib
 
 ## Summary:
 
