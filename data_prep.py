@@ -1,39 +1,58 @@
 from pycoingecko import CoinGeckoAPI as cg
 from datetime import datetime
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import torch
 import numpy as np
 
 
-def update_price_data(coin, price_data, start_date):
-    cg_api = cg()  # Add this line to create an instance of CoinGeckoAPI
-    start_datetime = datetime.strptime(start_date, "%Y-%m-%d")  # Convert start_date to datetime object
-    today = datetime.now()
-    days = (today - datetime.strptime(start_date, "%Y-%m-%d")).days
-    coin_id = coin.lower()
-    data = cg_api.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=days, interval='daily')  # Use the instance (cg_api) here
-    new_data = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
-    new_data['timestamp'] = pd.to_datetime(new_data['timestamp'], unit='ms')
-    new_data.set_index('timestamp', inplace=True)
-    new_data = new_data[new_data.index >= start_datetime]  # Use start_datetime here for comparison
-    new_data = new_data.rename(columns={'price': 'Close'})  # Rename the column before concatenating
-    updated_price_data = pd.concat([price_data, new_data['Close']], axis=0)  # Use pandas.concat
-    return updated_price_data
+def calculate_rsi(data, window=14):
+    delta = data['Close'].diff()
+    up_days = delta.copy()
+    up_days[delta<=0]=0.0
+    down_days = abs(delta.copy())
+    down_days[delta>0]=0.0
+    RS_up = up_days.rolling(window).mean()
+    RS_down = down_days.rolling(window).mean()
+    rsi= 100-100/(1+RS_up/RS_down)
+    return rsi
+
+
+def calculate_volatility(data, window=14):
+    volatility = data['Close'].diff().rolling(window).std()
+    return volatility
 
 
 def chooseData(coin):
-    data = pd.read_csv(f'data_csv/coin_{coin}.csv')
-    price_data = data['Close']
+    start_date = "2015-01-01"
+    cg_api = cg()
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+    today = datetime.now()
+    days = (today - datetime.strptime(start_date, "%Y-%m-%d")).days
+    coin_id = coin.lower()
+    data = cg_api.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=days, interval='daily')
+    new_data = pd.DataFrame(data['prices'], columns=['timestamp', 'Close'])
+    new_data['timestamp'] = pd.to_datetime(new_data['timestamp'], unit='ms')
+    new_data.set_index('timestamp', inplace=True)
+    new_data = new_data[new_data.index >= start_datetime]
+    
+    # Calculate RSI and Volatility
+    new_data['RSI'] = calculate_rsi(new_data)
+    new_data['Volatility'] = calculate_volatility(new_data)
+    
+    # Drop rows with NaN values
+    new_data = new_data.dropna()
 
-    start_date = "2021-07-07"  # This is the first day not covered by the csv 
-    updated_price_data = update_price_data(coin, price_data, start_date)
+    # Normalize the features separately
+    scaler_close = MinMaxScaler()
+    scaler_rsi = MinMaxScaler()
+    scaler_volatility = MinMaxScaler()
 
-    price_data_array = updated_price_data.to_numpy()
-
-    scaler = StandardScaler()
-    price_data_normalized = scaler.fit_transform(price_data_array.reshape(-1, 1))
-    return scaler, price_data_normalized
+    new_data['Close'] = scaler_close.fit_transform(new_data['Close'].values.reshape(-1,1))
+    new_data['RSI'] = scaler_rsi.fit_transform(new_data['RSI'].values.reshape(-1,1))
+    new_data['Volatility'] = scaler_volatility.fit_transform(new_data['Volatility'].values.reshape(-1,1))
+    
+    return scaler_close, new_data.values
 
 
 def create_sequences(data, seq_length):
@@ -43,32 +62,33 @@ def create_sequences(data, seq_length):
     # New variable to store the last sequence
 
     for i in range(len(data) - seq_length):
-        inputs.append(data[i:i + seq_length, 0])
-        labels.append(data[i + seq_length])
+        inputs.append(data[i:i + seq_length])
+        labels.append(data[i + seq_length, 0])
 
         if i == len(data) - seq_length - 1:
             last_sequence = data[i + 1:i + 1 + seq_length, 0]
 
-    inputs = np.array(inputs).reshape(-1, seq_length, 1)
+    inputs = np.array(inputs).reshape(-1, seq_length, data.shape[1])
     labels = np.array(labels)
 
     return inputs, labels
 
 
 def sortData(data, train_ratio=0.75, val_ratio=0.15):
-    seq_length = 30
+    seq_length = 64
     inputs, labels = create_sequences(data, seq_length)
-    train_size = int(len(inputs) * train_ratio)
-    val_size = int(len(inputs) * val_ratio)
+    total_size = len(inputs)
+    train_size = int(total_size * train_ratio)
+    val_size = int(total_size * val_ratio)
 
-    train_inputs = torch.tensor(inputs[val_size:val_size + train_size], dtype=torch.float32)
-    train_labels = torch.tensor(labels[val_size:val_size + train_size], dtype=torch.float32)
+    train_inputs = torch.tensor(inputs[:train_size], dtype=torch.float32)
+    train_labels = torch.tensor(labels[:train_size], dtype=torch.float32)
 
-    val_inputs = torch.tensor(inputs[:val_size], dtype=torch.float32)
-    val_labels = torch.tensor(labels[:val_size], dtype=torch.float32)
+    val_inputs = torch.tensor(inputs[train_size:train_size+val_size], dtype=torch.float32)
+    val_labels = torch.tensor(labels[train_size:train_size+val_size], dtype=torch.float32)
 
-    test_inputs = torch.tensor(inputs[train_size + val_size:], dtype=torch.float32)
-    test_labels = torch.tensor(labels[train_size + val_size:], dtype=torch.float32)
+    test_inputs = torch.tensor(inputs[train_size+val_size:], dtype=torch.float32)
+    test_labels = torch.tensor(labels[train_size+val_size:], dtype=torch.float32)
     
     return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
 

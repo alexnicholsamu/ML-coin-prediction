@@ -17,13 +17,12 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
     epochs_without_improvement = 0
 
     optimizer = optim.Rprop(model.parameters(), lr=learn_rate)
-
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=patience//2, factor=0.1)
     for epoch in range(num_epochs):
         total_loss = 0
         for inputs, labels in train_dataloader:
             optimizer.zero_grad()
             outputs = model(inputs)
-
             loss = torch.mean((outputs.squeeze(-1) - labels) ** 2)
             total_loss += loss.item()
             loss.backward()
@@ -35,7 +34,7 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
         # Evaluate on validation set
         val_loss = evaluate(val_inputs, val_labels)
         print(f'Validation Loss: {val_loss}')
-
+        scheduler.step(val_loss)
         # Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
