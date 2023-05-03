@@ -13,11 +13,9 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
              patience, learn_rate, batch_size=128):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    best_val_loss = float('inf')
-    epochs_without_improvement = 0
 
     optimizer = optim.Rprop(model.parameters(), lr=learn_rate)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=patience//2, factor=0.1)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=patience, factor=0.1)
     for epoch in range(num_epochs):
         total_loss = 0
         for inputs, labels in train_dataloader:
@@ -35,16 +33,6 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
         val_loss = evaluate(val_inputs, val_labels)
         print(f'Validation Loss: {val_loss}')
         scheduler.step(val_loss)
-        # Early stopping
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            epochs_without_improvement = 0
-        else:
-            epochs_without_improvement += 1
-
-        if epochs_without_improvement >= patience:
-            print("Early stopping triggered.")
-            break
 
 
 def evaluate(inputs, labels):
