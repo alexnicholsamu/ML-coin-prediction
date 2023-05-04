@@ -74,8 +74,8 @@ def create_sequences(data, seq_length):
     return inputs, labels
 
 
-def sortData(data, train_ratio=0.75, val_ratio=0.15):
-    seq_length = 64
+def sortData(data, train_ratio=0.90, val_ratio=0.05):
+    seq_length = 128
     inputs, labels = create_sequences(data, seq_length)
     total_size = len(inputs)
     train_size = int(total_size * train_ratio)
