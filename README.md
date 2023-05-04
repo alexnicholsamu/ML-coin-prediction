@@ -4,7 +4,7 @@
 
 > [CoinGeckoAPI](https://www.coingecko.com/en/api)
 
-> PyTorch, sklearn, matplotlib
+> PyTorch, sklearn, matplotlib, Pandas, NumPy
 
 ## Summary:
 
