@@ -35,5 +35,6 @@ hidden_dim = 64
 output_dim = 1
 model = DFFNN(input_dim, hidden_dim, output_dim)
 
+
 def getModel():
     return model

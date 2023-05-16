@@ -74,23 +74,19 @@ def create_sequences(data, seq_length):
     return inputs, labels
 
 
-def sortData(data, train_ratio=0.90, val_ratio=0.05):
+def sortData(data, train_ratio=0.95):
     seq_length = 128
     inputs, labels = create_sequences(data, seq_length)
     total_size = len(inputs)
     train_size = int(total_size * train_ratio)
-    val_size = int(total_size * val_ratio)
 
     train_inputs = torch.tensor(inputs[:train_size], dtype=torch.float32)
     train_labels = torch.tensor(labels[:train_size], dtype=torch.float32)
 
-    val_inputs = torch.tensor(inputs[train_size:train_size+val_size], dtype=torch.float32)
-    val_labels = torch.tensor(labels[train_size:train_size+val_size], dtype=torch.float32)
-
-    test_inputs = torch.tensor(inputs[train_size+val_size:], dtype=torch.float32)
-    test_labels = torch.tensor(labels[train_size+val_size:], dtype=torch.float32)
+    test_inputs = torch.tensor(inputs[train_size:], dtype=torch.float32)
+    test_labels = torch.tensor(labels[train_size:], dtype=torch.float32)
     
-    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
+    return train_inputs, train_labels, test_inputs, test_labels
 
 
 def prep_tomorrow_price(tomorrow_price):

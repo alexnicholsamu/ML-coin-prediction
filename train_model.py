@@ -5,12 +5,10 @@ import torch.optim as optim
 import model_architecture
 import data_prep
 
-
 model = model_architecture.getModel()
 
 
-def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels, 
-             patience, learn_rate, batch_size=128):
+def training(num_epochs, train_inputs, train_labels, patience, learn_rate, batch_size=128):
     train_dataset = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
@@ -27,19 +25,8 @@ def training(num_epochs, train_inputs, train_labels, val_inputs, val_labels,
             optimizer.step()
 
         avg_loss = total_loss / len(train_inputs)
+        scheduler.step(avg_loss)
         print(f'Epoch {epoch + 1}/{num_epochs} | Loss: {avg_loss}')
-
-        # Evaluate on validation set
-        val_loss = evaluate(val_inputs, val_labels)
-        print(f'Validation Loss: {val_loss}')
-        scheduler.step(val_loss)
-
-
-def evaluate(inputs, labels):
-    with torch.no_grad():
-        outputs = model(inputs)
-        loss = torch.mean((outputs.squeeze(-1) - labels) ** 2)
-    return loss.item()
 
 
 def getMeanSquaredError(predicted, actual):
@@ -49,8 +36,8 @@ def getMeanSquaredError(predicted, actual):
 
 def getPredictions(data_pack):
     scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
-    train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels = data_prep.sortData(normalized_data)
-    training(data_pack["number_epochs"], train_inputs, train_labels, val_inputs, val_labels, data_pack["patience"], data_pack["learning rate"])
+    train_inputs, train_labels,  test_inputs, test_labels = data_prep.sortData(normalized_data)
+    training(data_pack["number_epochs"], train_inputs, train_labels, data_pack["patience"], data_pack["learning rate"])
 
     with torch.no_grad():
         predicted = model(test_inputs).numpy()
@@ -60,8 +47,8 @@ def getPredictions(data_pack):
 
     # Calculate the standard deviation of the predicted values
     predicted_std = np.std(predicted)
+    print(f"Mean Squared Error: {getMeanSquaredError(predicted, actual)}")
 
     tomorrow_price = predicted[len(actual)-1][0]
 
     return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
-
