@@ -31,7 +31,7 @@ class DFFNN(nn.Module):
         return x
 
 input_dim = 3
-hidden_dim = 64
+hidden_dim = 256
 output_dim = 1
 model = DFFNN(input_dim, hidden_dim, output_dim)
 

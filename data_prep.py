@@ -24,7 +24,7 @@ def calculate_volatility(data, window=14):
 
 
 def chooseData(coin):
-    start_date = "2015-01-01"
+    start_date = "2019-01-01"
     cg_api = cg()
     start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
     today = datetime.now()
