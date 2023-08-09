@@ -30,7 +30,10 @@ def chooseData(coin):
     today = datetime.now()
     days = (today - datetime.strptime(start_date, "%Y-%m-%d")).days
     coin_id = coin.lower()
-    data = cg_api.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=days, interval='daily')
+    try:
+        data = cg_api.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=days, interval='daily')
+    except:
+        return 
     new_data = pd.DataFrame(data['prices'], columns=['timestamp', 'Close'])
     new_data['timestamp'] = pd.to_datetime(new_data['timestamp'], unit='ms')
     new_data.set_index('timestamp', inplace=True)

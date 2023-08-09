@@ -35,20 +35,24 @@ def getMeanSquaredError(predicted, actual):
 
 
 def getPredictions(data_pack):
-    scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
-    train_inputs, train_labels,  test_inputs, test_labels = data_prep.sortData(normalized_data)
-    training(data_pack["number_epochs"], train_inputs, train_labels, data_pack["patience"], data_pack["learning rate"])
+    try:
+        scaler, normalized_data = data_prep.chooseData(data_pack["coin"])
+        train_inputs, train_labels,  test_inputs, test_labels = data_prep.sortData(normalized_data)
+        training(data_pack["number_epochs"], train_inputs, train_labels, data_pack["patience"], data_pack["learning rate"])
 
-    with torch.no_grad():
-        predicted = model(test_inputs).numpy()
+        with torch.no_grad():
+            predicted = model(test_inputs).numpy()
 
-    actual = scaler.inverse_transform(test_labels.numpy().reshape(-1, 1))
-    predicted = scaler.inverse_transform(predicted.reshape(-1, 1))
+        actual = scaler.inverse_transform(test_labels.numpy().reshape(-1, 1))
+        predicted = scaler.inverse_transform(predicted.reshape(-1, 1))
 
-    # Calculate the standard deviation of the predicted values
-    predicted_std = np.std(predicted)
-    print(f"Mean Squared Error: {getMeanSquaredError(predicted, actual)}")
+        # Calculate the standard deviation of the predicted values
+        predicted_std = np.std(predicted)
+        print(f"Mean Squared Error: {getMeanSquaredError(predicted, actual)}")
 
-    tomorrow_price = predicted[len(actual)-1][0]
+        tomorrow_price = predicted[len(actual)-1][0]
 
-    return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
+        return actual, predicted, predicted_std, data_prep.prep_tomorrow_price(tomorrow_price)
+    except:
+        print("Invalid Coin. Please choose a valid coin for analysis")
+    
